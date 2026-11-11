@@ -1,7 +1,6 @@
 /***********************************************
 > Locket AI Filter Modifier, Unblur & Community Gold VIP
-> Phân Phối: Hakaiz
-> Tác giả: dinhtuan07
+> Tác giả: GB
 > Hỗ trợ: Shadowrocket, Loon, Surge, Quantumult X
 > FIX: Bộ lọc AI (AI Filters) hoạt động đúng
 > Tính năng:
