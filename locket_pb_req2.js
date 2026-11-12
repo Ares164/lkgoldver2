@@ -1,8 +1,12 @@
-// ========= Locket Photobooth 4-Shot Engine & AI Filter Modifier (Replicate) ========= //
+// ========= Locket Photobooth 4-Shot Engine & FULL AI Filter Modifier ========= //
+// Tích hợp TOÀN BỘ hiệu ứng AI (hơn 50+ filters)
+// ========================================================================= //
+
 (function () {
     const WORKER_HOST = "https://locketsever.lehuynhgiabao71.workers.dev";
     const TIMEOUT_MS = 25000; 
 
+    // TOÀN BỘ DANH SÁCH ID
     const STICKER_ID_MAP = {
 		"stk_rose_flower": "rose_flower", "rose_flower": "rose_flower",
 		"stk_shrek_ogre": "shrek_ogre", "shrek_ogre": "shrek_ogre",
@@ -29,9 +33,38 @@
         "stk_dio_looksmaxing": "looks_maxxing", "looksmaxing": "looks_maxxing",
         "stk_dio_slimed": "slimed", "slimed": "slimed",
         "stk_dio_clown": "clown", "clown": "clown",
-        "stk_dio_tatted": "tatted", "tatted": "tatted"
+        "stk_dio_tatted": "tatted", "tatted": "tatted",
+        "stk_dio_cash": "cash_money", "cash": "cash_money",
+        "stk_dio_wedding": "wedding", "wedding": "wedding",
+        "stk_dio_cowboy": "cowboy_cowgirl", "cowboy": "cowboy_cowgirl",
+        "stk_dio_orange_wig": "okay_wig", "orange_wig": "okay_wig",
+        "stk_dio_bleached_hair": "blonde_bleached", "bleached_hair": "blonde_bleached",
+        "stk_dio_bob": "bob_cut", "bob": "bob_cut",
+        "stk_dio_sweat_hearts": "sweet_hearts", "sweat_hearts": "sweet_hearts",
+        "stk_dio_elf": "elf_cutout", "elf": "elf_cutout",
+        "stk_dio_santa": "santa_cutout", "santa": "santa_cutout",
+        "stk_dio_easter_bunny": "easter_bunney_cutout", "easter_bunny": "easter_bunney_cutout",
+        "stk_dio_easter_chick": "easter_chick_cutout", "easter_chick": "easter_chick_cutout",
+        "stk_dio_toothless": "toothless", "toothless": "toothless",
+        "stk_dio_bye_brows": "bye_brows", "bye_brows": "bye_brows",
+        "stk_dio_bowling_ball": "bowling_ball", "bowling_ball": "bowling_ball",
+        "stk_dio_buns": "buns", "buns": "buns",
+        "stk_dio_mohawk": "mohawk", "mohawk": "mohawk",
+        "stk_dio_braces": "braces", "braces": "braces",
+        "stk_dio_princess": "princess", "princess": "princess",
+        "stk_dio_happy_birthday": "happy_birthday", "happy_birthday": "happy_birthday",
+        "stk_dio_cutesy": "cutesy", "cutesy": "cutesy",
+        "stk_dio_sticker_face": "sticker_face", "sticker_face": "sticker_face",
+        "stk_dio_flower_crown": "flower_crown", "flower_crown": "flower_crown",
+        "stk_dio_love_bug": "love_bug", "love_bug": "love_bug",
+        "stk_dio_giraffe": "giraffe", "giraffe": "giraffe",
+        "stk_dio_leprechaun": "leprechaun", "leprechaun": "leprechaun",
+        "stk_dio_lucky_face": "lucky_face", "lucky_face": "lucky_face",
+        "stk_dio_frosty": "frosty", "frosty": "frosty",
+        "stk_dio_influencer": "influencer", "influencer": "influencer"
     };
 
+    // TOÀN BỘ PROMPT AI
     const AI_PROMPTS = {
         "rose_flower": "Show the person in the photo with the exact same pose and background, but have them with a single rose in their mouth.",
         "shrek_ogre": "Show the person in the photo with the exact same pose and background, but transform them into Shrek with rounded ears, and rustic clothing while preserving the pose.",
@@ -53,36 +86,38 @@
         "giant_spider": "Show the person in the photo with the exact same pose, expression, and background, but place a realistic spider perched on them somewhere.",
         "ocean_underwater": "Show the person in the photo with the exact same pose, background, and facial expression, but as if them and their surrounding environment was underwater.",
         "ufo_alien": "Show the person in the photo with the exact same pose and background, but show a subtle UFO hovering in the sky or an alien.",
-        "disco_lights": "Show the persons in the photo with the exact same pose and background, but with disco-style lighting effects cast across the scene, captured with a modern iPhone camera look.",
+        "disco_lights": "Show the persons in the photo with the exact same pose and background, but with disco-style lighting effects cast across the scene.",
         "looks_maxxing": "Show the persons in the photo with the exact same pose and background, but with a full, full-length beard added to the face.",
         "beard": "Show the persons in the photo with the exact same pose and background, but with a full, full-length beard added to the face.",
-        "slimed": "Show the persons in the photo with the exact same pose and background, but with thick green Nickelodeon-style slime being poured and splashing throughout the scene.",
+        "slimed": "Show the persons in the photo with the exact same pose and background, but with thick green Nickelodeon-style slime being poured.",
+        "cowboy_cowgirl": "Show the persons in the photo with the exact same pose and background, but with subjects dressed in Western attire appropriate to each person.",
         "clown": "Show the persons in the photo with the exact same pose and background, but styled as clowns.",
-        "tatted": "Show the persons in the photo with the exact same pose and background, but with face tattoos applied."
+        "tatted": "Show the persons in the photo with the exact same pose and background, but with face tattoos applied.",
+        "bye_brows": "Show the persons in the photo with the exact same pose and background, but with only the eyebrow hair removed.",
+        "bowling_ball": "Show the persons in the photo with the exact same pose and background, but with a completely bald head.",
+        "blonde_bleached": "Show the persons in the photo with the exact same pose and background, but with a buzzed and bleached hairstyle.",
+        "bob_cut": "Show the persons in the photo with the exact same pose and background, but with their hair cut into a bob hairstyle.",
+        "mohawk": "Show the persons in the photo with the exact same pose and background, but with a mohawk hairstyle featuring shaved sides and a raised center strip.",
+        "braces": "Show the persons in the photo with the exact same pose and background, but with multicolored braces visible on their teeth.",
+        "flower_crown": "Show the persons in the photo with the exact same pose and background, but wearing a mixed wildflower crown.",
+        "giraffe": "Show the persons in the photo with the exact same pose and background, but with the subject wearing a giraffe costume.",
+        "leprechaun": "Show the person in the photo with the exact same pose, framing, expression, and background, but dress them in leprechaun costume.",
+        "lucky_face": "Show the person in the photo with the exact same pose and background, but add cute, subtle freckles concentrated across the bridge of the nose and upper cheeks.",
+        "elf_cutout": "Show the person in the photo with the exact same pose and background, but dressed up as an Elf.",
+        "santa_cutout": "Show the person in the photo with the exact same pose and background, but dressed up as Santa Claus.",
+        "easter_chick_cutout": "Show the persons in the photo with the exact same pose and background, but put them in a bright yellow Easter chick costume.",
+        "influencer": "Show the persons in the photo with the exact same pose and background, but with a hyperbolic influencer makeup look applied to the face."
     };
 
     function buildMock200Response(outputUrl) {
         return {
             status: 200,
-            headers: {
-                "Content-Type": "application/json; charset=utf-8",
-                "Access-Control-Allow-Origin": "*"
-            },
+            headers: { "Content-Type": "application/json; charset=utf-8", "Access-Control-Allow-Origin": "*" },
             body: JSON.stringify({
                 result: {
-                    outputUrl: outputUrl,
-                    output_url: outputUrl,
-                    url: outputUrl,
-                    imageUrl: outputUrl,
-                    image_url: outputUrl,
-                    status: 200,
-                    data: {
-                        outputUrl: outputUrl,
-                        output_url: outputUrl,
-                        url: outputUrl,
-                        imageUrl: outputUrl,
-                        image_url: outputUrl
-                    }
+                    outputUrl: outputUrl, output_url: outputUrl, url: outputUrl,
+                    imageUrl: outputUrl, image_url: outputUrl, status: 200,
+                    data: { outputUrl: outputUrl, url: outputUrl, imageUrl: outputUrl }
                 }
             })
         };
@@ -92,12 +127,7 @@
         if (!body) return "";
         let reqBody = {};
         try { reqBody = JSON.parse(body); } catch (e) {}
-        let url = reqBody.imageUrl || reqBody.image_url || reqBody.inputUrl
-               || reqBody.input_url || reqBody.url || reqBody.downloadUrl
-               || reqBody.download_url || "";
-        if (!url && reqBody.data) {
-            url = reqBody.data.imageUrl || reqBody.data.image_url || reqBody.data.url || "";
-        }
+        let url = reqBody.imageUrl || reqBody.image_url || reqBody.inputUrl || reqBody.input_url || reqBody.url || reqBody.downloadUrl || reqBody.download_url || "";
         if (!url && typeof body === "string") {
             const m = body.match(/https?:\/\/[^"'\s\\]+\.(jpg|jpeg|png|webp)[^"'\s\\]*/i);
             if (m) url = m[0].replace(/\\u0026/g, "&").replace(/\\/g, "");
@@ -106,12 +136,9 @@
     }
 
     function extractFilterId(req) {
-        const urlMatch = (req.url || "").match(/filter[\/=]([a-zA-Z0-9_\-]+)/i);
-        if (urlMatch) return urlMatch[1];
         try {
             const b = JSON.parse(req.body || "{}");
-            return b.filterId || b.filter_id || b.stickerId || b.sticker_id
-                || b.filter || b.sticker || "";
+            return b.filterId || b.filter_id || b.stickerId || b.sticker_id || b.filter || b.sticker || "";
         } catch (e) {}
         return "";
     }
@@ -126,39 +153,40 @@
             if (!photoUrl) return $done({});
 
             const rawFilterId = extractFilterId($request);
-            const filterId = STICKER_ID_MAP[rawFilterId] || rawFilterId;
-            const prompt = AI_PROMPTS[filterId] || AI_PROMPTS[rawFilterId] || "Add a nice filter effect, keep the person's face identical.";
+            
+            // Tự động nhận diện Photobooth (Để trả ảnh gốc, ghép khung)
+            const isPhotobooth = /^pb_|^photobooth_|^frame_/i.test(rawFilterId);
 
-            const payload = JSON.stringify({
-                imageUrl: photoUrl,
-                filterId: filterId,
-                prompt: prompt
-            });
-
-            const timer = setTimeout(function () {
+            if (isPhotobooth || !STICKER_ID_MAP[rawFilterId]) {
                 return $done(buildMock200Response(photoUrl));
-            }, TIMEOUT_MS);
+            }
 
+            // Gọi AI
+            const filterId = STICKER_ID_MAP[rawFilterId] || rawFilterId;
+            const prompt = AI_PROMPTS[filterId] || "Add a nice filter effect, keep the person's face identical.";
+            const payload = JSON.stringify({ imageUrl: photoUrl, filterId: filterId, prompt: prompt });
+
+            // Trả ảnh gốc ngay để lách Timeout
+            $done(buildMock200Response(photoUrl));
+
+            // Chạy ngầm AI Replicate
             $httpClient.post({
                 url: WORKER_HOST,
                 headers: { "Content-Type": "application/json" },
                 body: payload,
                 timeout: TIMEOUT_MS / 1000
             }, function (err, resp, data) {
-                clearTimeout(timer);
-                if (err || !resp || resp.status !== 200) {
-                    return $done(buildMock200Response(photoUrl));
+                if (!err && resp && resp.status === 200) {
+                    try {
+                        const json = JSON.parse(data);
+                        const outUrl = (json.result && json.result.outputUrl) || json.outputUrl || json.url;
+                        if (outUrl) {
+                            if (typeof $persistentStore !== "undefined") {
+                                $persistentStore.write(outUrl, "LOCKET_LAST_AI_RESULT");
+                            }
+                        }
+                    } catch (e) {}
                 }
-                try {
-                    const json = JSON.parse(data);
-                    const outUrl =
-                        (json.result && (json.result.outputUrl || json.result.output_url || json.result.url)) ||
-                        json.outputUrl || json.output_url || json.url || json.imageUrl || json.image_url;
-                    if (outUrl) {
-                        return $done(buildMock200Response(outUrl + "?t=" + Date.now()));
-                    }
-                } catch (e) {}
-                return $done(buildMock200Response(photoUrl));
             });
             return; 
         } catch (e) {
@@ -183,8 +211,6 @@
             delete respHeaders["content-encoding"];
             delete respHeaders["Content-Length"];
             delete respHeaders["content-length"];
-            delete respHeaders["Transfer-Encoding"];
-            delete respHeaders["transfer-encoding"];
             respHeaders["Content-Type"] = "application/json; charset=utf-8";
             return $done({
                 status: 200,
