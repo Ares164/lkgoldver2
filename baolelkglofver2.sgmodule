@@ -49,9 +49,6 @@ revenuecat = type=http-response,pattern=^https?:\/\/api\.revenuecat\.com\/.+\/(r
 
 locket_rc = type=http-response,pattern=^https:\/\/firebaseremoteconfig\.googleapis\.com\/v1\/projects\/locket-4252a\/.+,script-path=https://raw.githubusercontent.com/Ares164/lkgoldver2/refs/heads/main/locketfix.js,requires-body=true,max-size=-1,timeout=60
 
-# Locket Photobooth Engine
-locket_pb_req = type=http-request,pattern=^https?:\/\/(us-central1-locket-4252a\.cloudfunctions\.net|api\.locketcamera\.com)\/generateFilteredImage,script-path=https://raw.githubusercontent.com/Ares164/lkgoldver2/refs/heads/main/locket_pb_req2.js,requires-body=true,max-size=-1,timeout=60
-
 # Locket Huy hiệu Profile và Mạng lưới bạn bè VIP
 locket_change_profile = type=http-request,pattern=^https:\/\/api\.locketcamera\.com\/changeProfileInfo,script-path=https://raw.githubusercontent.com/Ares164/lkgoldver2/refs/heads/main/locket_change_profile.js,timeout=60
 
