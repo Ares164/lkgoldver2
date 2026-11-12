@@ -1,9 +1,5 @@
 // ========= Locket Photobooth 4-Shot Engine & AI Filter Modifier (Replicate) ========= //
-// Chỉ xử lý luồng gọi AI và Photobooth
-// ========================================================================= //
-
 (function () {
-    // ĐÃ CẬP NHẬT LINK SERVER CLOUDFLARE CỦA BẠN
     const WORKER_HOST = "https://locketsever.lehuynhgiabao71.workers.dev";
     const TIMEOUT_MS = 25000; 
 
