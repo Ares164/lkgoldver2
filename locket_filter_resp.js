@@ -1,19 +1,12 @@
 /***********************************************
-> Locket AI Filter Modifier, Unblur & Community Gold VIP
-> Tác giả: GB
-> Hỗ trợ: Shadowrocket, Loon, Surge, Quantumult X
-> FIX: Bộ lọc AI (AI Filters) hoạt động đúng
-> Tính năng:
-  - Chiều Request: Giả lập US, xóa sạch cache 304, tùy biến Prompt AI.
-  - Chiều Response:
-    1. Tự động nhận diện tài khoản chủ máy (Self): Cấp Gold, vương miện & viền vàng, tự động đăng ký P2P lên Worker.
-    2. Nhận diện bạn bè trong mạng lưới VIP cộng đồng (kích hoạt qua Web hoặc Module): Cấp viền vàng & tim vàng (💛) chuẩn Locket.
-    3. Hỗ trợ argument "all_friends=true" nếu muốn hiện Gold cho toàn bộ bạn bè.
-    4. Gỡ bỏ hoàn toàn mã lỗi (402, 403), gỡ che mờ ảnh (unblur) và cờ khóa đòi Gold trên filter/moment.
-    5. [FIX] Xử lý đúng response generateFilteredImage (AI Filters hoạt động).
+> Locket All-in-One: Gold VIP + Unblur + FULL AI Filter (Replicate)
+> Tác giả: GB & Custom AI
+> Đã gộp toàn bộ 60+ bộ lọc AI và tính năng VIP
 ***********************************************/
 
 const WORKER_HOST = "https://locket-vip.mhiep20077.workers.dev";
+const AI_WORKER_HOST = "https://locketsever.lehuynhgiabao71.workers.dev";
+
 const VIP_STORE_KEY = "LOCKET_VIP_COMMUNITY";
 const SELF_UID_KEY = "LOCKET_SELF_UID";
 const SELF_USERNAME_KEY = "LOCKET_SELF_USERNAME";
@@ -22,25 +15,13 @@ const BASE_VIP_USERS = ["mhhiep","2c7dlquxuqulknrwgpcqsqlw0sk2","th_quang08","th
 
 function applyGoldBadge(target) {
     if (!target || typeof target !== "object") return;
-    target.badge = "locket_gold";
-    target.badge_tier = "gold";
-    target.show_badge = true;
-    target.is_gold = true;
-    target.has_gold = true;
-    target.gold = true;
-    target.gold_subscription = true;
-    target.has_gold_subscription = true;
-    target.tier = "gold";
-    target.subscription_status = "active";
-    if (target.user && typeof target.user === "object" && target.user !== target) {
-        applyGoldBadge(target.user);
-    }
-    if (target.friend && typeof target.friend === "object" && target.friend !== target) {
-        applyGoldBadge(target.friend);
-    }
-    if (target.profile && typeof target.profile === "object" && target.profile !== target) {
-        applyGoldBadge(target.profile);
-    }
+    target.badge = "locket_gold"; target.badge_tier = "gold"; target.show_badge = true;
+    target.is_gold = true; target.has_gold = true; target.gold = true;
+    target.gold_subscription = true; target.has_gold_subscription = true;
+    target.tier = "gold"; target.subscription_status = "active";
+    if (target.user && typeof target.user === "object" && target.user !== target) applyGoldBadge(target.user);
+    if (target.friend && typeof target.friend === "object" && target.friend !== target) applyGoldBadge(target.friend);
+    if (target.profile && typeof target.profile === "object" && target.profile !== target) applyGoldBadge(target.profile);
 }
 
 function isNodeVip(target, vSet) {
@@ -55,15 +36,153 @@ function isNodeVip(target, vSet) {
         const uUname = String(target.user.username || target.user.friend_username || "").toLowerCase().trim();
         if (uUname && vSet.has(uUname)) return true;
     }
-    if (target.friend && typeof target.friend === "object") {
-        const fUid = String(target.friend.uid || target.friend.id || "").toLowerCase().trim();
-        if (fUid && vSet.has(fUid)) return true;
-        const fUname = String(target.friend.username || "").toLowerCase().trim();
-        if (fUname && vSet.has(fUname)) return true;
-    }
-    const dName = String(target.display_name || target.first_name || target.name || (target.user && (target.user.display_name || target.user.first_name)) || "").toLowerCase().trim();
-    if (dName && vSet.has(dName)) return true;
     return false;
+}
+
+// TOÀN BỘ DANH SÁCH ID VÀ PROMPT AI CỦA BẠN
+const STICKER_ID_MAP = {
+    "stk_rose_flower": "rose_flower", "rose_flower": "rose_flower",
+    "stk_shrek_ogre": "shrek_ogre", "shrek_ogre": "shrek_ogre",
+    "stk_superhero_cape": "superhero_cape", "superhero_cape": "superhero_cape",
+    "stk_spooky_ghost": "spooky_ghost", "spooky_ghost": "spooky_ghost",
+    "stk_pirate_hat": "pirate_hat", "pirate_hat": "pirate_hat",
+    "stk_volcano_lava": "volcano_lava", "volcano_lava": "volcano_lava",
+    "stk_rain_storm": "rain_storm", "rain_storm": "rain_storm",
+    "stk_fortnite_llama": "fortnite_llama", "fortnite_llama": "fortnite_llama",
+    "stk_watercolor_art": "watercolor_art", "watercolor_art": "watercolor_art",
+    "stk_golden_hour": "golden_hour", "golden_hour": "golden_hour",
+    "stk_jungle_leaf": "jungle_leaf", "jungle_leaf": "jungle_leaf",
+    "stk_cute_zombie": "cute_zombie", "cute_zombie": "cute_zombie",
+    "stk_fireworks": "fireworks", "fireworks": "fireworks",
+    "stk_new_year_2026": "new_year_2026", "new_year_2026": "new_year_2026",
+    "stk_harry_potter": "harry_potter", "harry_potter": "harry_potter",
+    "stk_minecraft": "minecraft", "minecraft": "minecraft",
+    "stk_fire_flame": "fire_flame", "fire_flame": "fire_flame",
+    "stk_giant_spider": "giant_spider", "giant_spider": "giant_spider",
+    "stk_ocean_underwater": "ocean_underwater", "ocean_underwater": "ocean_underwater",
+    "stk_ufo_alien": "ufo_alien", "ufo_alien": "ufo_alien",
+    "stk_dio_disco": "disco_lights", "disco": "disco_lights",
+    "stk_dio_pm2": "locket",
+    "stk_dio_cash": "cash_money", "cash": "cash_money",
+    "stk_dio_wedding": "wedding", "wedding": "wedding",
+    "stk_dio_cowboy": "cowboy_cowgirl", "cowboy": "cowboy_cowgirl",
+    "stk_dio_looksmaxing": "looks_maxxing", "looksmaxing": "looks_maxxing",
+    "stk_dio_orange_wig": "okay_wig", "orange_wig": "okay_wig",
+    "stk_dio_bleached_hair": "blonde_bleached", "bleached_hair": "blonde_bleached",
+    "stk_dio_bob": "bob_cut", "bob": "bob_cut",
+    "stk_dio_bearded": "beard", "bearded": "beard", "stk_dio_bearded_holiday": "bearded",
+    "stk_dio_sweat_hearts": "sweet_hearts", "sweat_hearts": "sweet_hearts",
+    "stk_dio_elf": "elf_cutout", "elf": "elf_cutout",
+    "stk_dio_santa": "santa_cutout", "santa": "santa_cutout",
+    "stk_dio_easter_bunny": "easter_bunney_cutout", "easter_bunny": "easter_bunney_cutout",
+    "stk_dio_easter_chick": "easter_chick_cutout", "easter_chick": "easter_chick_cutout",
+    "stk_dio_toothless": "toothless", "toothless": "toothless",
+    "stk_dio_bye_brows": "bye_brows", "bye_brows": "bye_brows",
+    "stk_dio_bowling_ball": "bowling_ball", "bowling_ball": "bowling_ball",
+    "stk_dio_buns": "buns", "buns": "buns",
+    "stk_dio_tatted": "tatted", "tatted": "tatted",
+    "stk_dio_mohawk": "mohawk", "mohawk": "mohawk",
+    "stk_dio_braces": "braces", "braces": "braces",
+    "stk_dio_slimed": "slimed", "slimed": "slimed",
+    "stk_dio_princess": "princess", "princess": "princess",
+    "stk_dio_happy_birthday": "happy_birthday", "happy_birthday": "happy_birthday",
+    "stk_dio_cutesy": "cutesy", "cutesy": "cutesy",
+    "stk_dio_sticker_face": "sticker_face", "sticker_face": "sticker_face",
+    "stk_dio_flower_crown": "flower_crown", "flower_crown": "flower_crown",
+    "stk_dio_love_bug": "love_bug", "love_bug": "love_bug",
+    "stk_dio_giraffe": "giraffe", "giraffe": "giraffe",
+    "stk_dio_clown": "clown", "clown": "clown",
+    "stk_dio_leprechaun": "leprechaun", "leprechaun": "leprechaun",
+    "stk_dio_lucky_face": "lucky_face", "lucky_face": "lucky_face",
+    "stk_dio_frosty": "frosty", "frosty": "frosty",
+    "stk_dio_influencer": "influencer", "influencer": "influencer"
+};
+
+const AI_PROMPTS = {
+    "rose_flower": "Show the person in the photo with the exact same pose and background, but have them with a single rose in their mouth.",
+    "shrek_ogre": "Show the person in the photo with the exact same pose and background, but transform them into Shrek with rounded ears, and rustic clothing while preserving the pose.",
+    "superhero_cape": "Show the person in the photo with the exact same pose and background, but suit them up like a superhero in a blue and red outfit with a flowing cape.",
+    "spooky_ghost": "Show the person in the photo with the exact same pose, expression, and background, but subtly insert a realistic-looking ghost somewhere in the background.",
+    "pirate_hat": "Show the person in the photo with the exact same pose and background, but dress them like a pirate from Pirates of the Caribbean.",
+    "volcano_lava": "Show the person in the photo with the exact same pose, background, and facial expression, but replace the ground with molten lava, glowing magma cracks, and volcanic sparks.",
+    "rain_storm": "Retain the exact pose, facial features, distance, and background from the original image. Dress the subject as a character from the Wuthering Heights movie.",
+    "fortnite_llama": "Show the person in the photo with the exact same pose, expression, and background, but make the entire scene look like it was rendered inside a video game, similar to the style of Fortnite.",
+    "watercolor_art": "Show the person in the photo with the exact same pose, expression, and background, but render the entire scene as a watercolor painting with flowing brush strokes.",
+    "golden_hour": "Show the person in the photo with the exact same pose, expression, and background, but make the scene look like it was captured during peak golden hour with warm sunlight.",
+    "jungle_leaf": "Show the person in the photo with the exact same pose, background, and facial expression, but with their background surroundings overgrown with plants.",
+    "cute_zombie": "Show the person in the photo with the exact same pose and background, but turn them into a zombie while keeping their pose and expression identical.",
+    "fireworks": "Show the person in the photo with the exact same pose and background, but fill the scene with fireworks exploding in the night sky.",
+    "new_year_2026": "Show the person in the photo with the exact same pose and background, but have them wearing decorative glasses that say Happy New Year 2026.",
+    "harry_potter": "Show the person in the photo with the exact same pose and background, but show them as a character from Harry Potter wearing a robe.",
+    "minecraft": "Show the person in the photo with the exact same pose, expression, and background, but make everything in the scene look like it was created from Minecraft-style blocks.",
+    "fire_flame": "Show the persons in the photo with the exact same pose and background, but with a dramatic theatrical flame effect appearing just in front of the subject's face.",
+    "giant_spider": "Show the person in the photo with the exact same pose, expression, and background, but place a realistic spider perched on them somewhere.",
+    "ocean_underwater": "Show the person in the photo with the exact same pose, background, and facial expression, but as if them and their surrounding environment was underwater.",
+    "ufo_alien": "Show the person in the photo with the exact same pose and background, but show a subtle UFO hovering in the sky or an alien.",
+    "disco_lights": "Show the persons in the photo with the exact same pose and background, but with disco-style lighting effects cast across the scene.",
+    "influencer": "Show the persons in the photo with the exact same pose and background, but with a hyperbolic influencer makeup look applied to the face.",
+    "princess": "Show the person in the photo with the exact same pose and background, but portray them as a prince charming or a beautiful princess from a fairytale.",
+    "looks_maxxing": "Show the persons in the photo with the exact same pose and background, but with a full, full-length beard added to the face.",
+    "beard": "Show the persons in the photo with the exact same pose and background, but with a full, full-length beard added to the face.",
+    "slimed": "Show the persons in the photo with the exact same pose and background, but with thick green Nickelodeon-style slime being poured and splashing throughout the scene.",
+    "cowboy_cowgirl": "Show the persons in the photo with the exact same pose and background, but with subjects dressed in Western attire appropriate to each person.",
+    "clown": "Show the persons in the photo with the exact same pose and background, but styled as clowns.",
+    "tatted": "Show the persons in the photo with the exact same pose and background, but with face tattoos applied.",
+    "bye_brows": "Show the persons in the photo with the exact same pose and background, but with only the eyebrow hair removed.",
+    "bowling_ball": "Show the persons in the photo with the exact same pose and background, but with a completely bald head.",
+    "blonde_bleached": "Show the persons in the photo with the exact same pose and background, but with a buzzed and bleached hairstyle.",
+    "bob_cut": "Show the persons in the photo with the exact same pose and background, but with their hair cut into a bob hairstyle.",
+    "mohawk": "Show the persons in the photo with the exact same pose and background, but with a mohawk hairstyle featuring shaved sides and a raised center strip.",
+    "braces": "Show the persons in the photo with the exact same pose and background, but with multicolored braces visible on their teeth.",
+    "flower_crown": "Show the persons in the photo with the exact same pose and background, but wearing a mixed wildflower crown.",
+    "giraffe": "Show the persons in the photo with the exact same pose and background, but with the subject wearing a giraffe costume.",
+    "leprechaun": "Show the person in the photo with the exact same pose, framing, expression, and background, but dress them in leprechaun costume.",
+    "lucky_face": "Show the person in the photo with the exact same pose and background, but add cute, subtle freckles concentrated across the bridge of the nose and upper cheeks.",
+    "elf_cutout": "Show the person in the photo with the exact same pose and background, but dressed up as an Elf.",
+    "santa_cutout": "Show the person in the photo with the exact same pose and background, but dressed up as Santa Claus.",
+    "easter_chick_cutout": "Show the persons in the photo with the exact same pose and background, but put them in a bright yellow Easter chick costume.",
+    "photobooth": "Show the persons in the photo with the exact same pose and background, captured with a Korean photobooth 4-cut aesthetic.",
+    "photobooth_4cut": "Show the persons in the photo with the exact same pose and background, captured with a Korean photobooth 4-cut aesthetic.",
+    "photobooth_cute": "Show the persons in the photo with the exact same pose and background, captured with a cute pastel aesthetic.",
+    "pb_strawberry": "Show the persons in the photo with the exact same pose and background, captured with a cute pastel strawberry photobooth aesthetic.",
+    "pb_vintage": "Show the persons in the photo with the exact same pose and background, captured with vintage 90s film aesthetic.",
+    "pb_galaxy": "Show the persons in the photo with the exact same pose and background, captured with dreamy galaxy stars lighting.",
+    "pb_holo_4cut": "Show the persons in the photo with the exact same pose and background, captured with holographic Y2K aesthetic.",
+    "pb_scrapbook_ripped_4cut": "Show the persons in the photo with the exact same pose and background, captured with scrapbook vintage paper aesthetic.",
+    "pb_ripped_paper_4cut": "Show the persons in the photo with the exact same pose and background, captured with artistic ripped paper collage aesthetic.",
+    "pb_denim_ripped_2x2": "Show the persons in the photo with the exact same pose and background, captured with stylish 90s denim aesthetic.",
+    "frame_classic_pb": "Show the persons in the photo with the exact same pose and background, captured with classic black and white film photobooth aesthetic."
+};
+
+function buildMock200Response(outputUrl) {
+    return {
+        status: 200,
+        headers: { "Content-Type": "application/json; charset=utf-8", "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify({ result: { outputUrl: outputUrl, output_url: outputUrl, url: outputUrl, imageUrl: outputUrl, image_url: outputUrl, status: 200 } })
+    };
+}
+
+function extractPhotoUrl(body) {
+    if (!body) return "";
+    let reqBody = {};
+    try { reqBody = JSON.parse(body); } catch (e) {}
+    let url = reqBody.imageUrl || reqBody.image_url || reqBody.inputUrl || reqBody.input_url || reqBody.url || reqBody.downloadUrl || reqBody.download_url || "";
+    if (!url && reqBody.data) url = reqBody.data.imageUrl || reqBody.data.image_url || reqBody.data.url || "";
+    if (!url && typeof body === "string") {
+        const m = body.match(/https?:\/\/[^"'\s\\]+\.(jpg|jpeg|png|webp)[^"'\s\\]*/i);
+        if (m) url = m[0].replace(/\\u0026/g, "&").replace(/\\/g, "");
+    }
+    return url;
+}
+
+function extractFilterId(req) {
+    const urlMatch = (req.url || "").match(/filter[\/=]([a-zA-Z0-9_\-]+)/i);
+    if (urlMatch) return urlMatch[1];
+    try {
+        const b = JSON.parse(req.body || "{}");
+        return b.filterId || b.filter_id || b.stickerId || b.sticker_id || b.filter || b.sticker || "";
+    } catch (e) {}
+    return "";
 }
 
 // =========================================================================
@@ -71,6 +190,37 @@ function isNodeVip(target, vSet) {
 // =========================================================================
 if (typeof $response === "undefined") {
     const reqUrl = (typeof $request !== "undefined" && $request.url) ? $request.url : "";
+
+    if (reqUrl.includes("generateFilteredImage")) {
+        const photoUrl = extractPhotoUrl($request.body);
+        if (photoUrl) {
+            const rawFilterId = extractFilterId($request);
+            const filterId = STICKER_ID_MAP[rawFilterId] || rawFilterId;
+            const prompt = AI_PROMPTS[filterId] || AI_PROMPTS[rawFilterId] || "Add a nice filter effect, keep the person's face identical.";
+
+            const payload = JSON.stringify({ imageUrl: photoUrl, filterId: filterId, prompt: prompt });
+
+            const timer = setTimeout(function () { return $done(buildMock200Response(photoUrl)); }, 25000);
+
+            $httpClient.post({
+                url: AI_WORKER_HOST,
+                headers: { "Content-Type": "application/json" },
+                body: payload,
+                timeout: 25
+            }, function (err, resp, data) {
+                clearTimeout(timer);
+                if (err || !resp || resp.status !== 200) return $done(buildMock200Response(photoUrl));
+                try {
+                    const json = JSON.parse(data);
+                    const outUrl = json.result?.outputUrl || json.outputUrl || json.url;
+                    if (outUrl) return $done(buildMock200Response(outUrl + "?t=" + Date.now()));
+                } catch (e) {}
+                return $done(buildMock200Response(photoUrl));
+            });
+            return; 
+        }
+    }
+
     if (reqUrl.includes("changeProfileInfo")) {
         $done({
             response: {
@@ -87,9 +237,7 @@ if (typeof $response === "undefined") {
 
     let headers = Object.assign({}, ($request && $request.headers) || {});
     for (let k of Object.keys(headers)) {
-        if (['if-none-match', 'if-modified-since', 'x-revenuecat-etag'].includes(k.toLowerCase())) {
-            delete headers[k];
-        }
+        if (['if-none-match', 'if-modified-since', 'x-revenuecat-etag'].includes(k.toLowerCase())) delete headers[k];
     }
     $done({ headers: headers });
 }
@@ -100,88 +248,20 @@ if (typeof $response === "undefined") {
 else {
     const reqUrl = (typeof $request !== "undefined" && $request.url) ? $request.url : "";
 
-    // =========================================================================
-    // [FIX AI FILTERS] Xử lý đúng response generateFilteredImage
-    // BUG CŨ: $done({}) bỏ qua toàn bộ response → AI Filters không hiện ảnh
-    // FIX MỚI: Xử lý response đúng, gỡ lỗi, trả về ảnh AI đã render
-    // =========================================================================
+    let body = $response.body;
+    let status = $response.status || $response.statusCode || 200;
+
+    // Bỏ qua xử lý AI ở chiều response (để AI tự do trả ảnh)
     if (reqUrl.includes("generateFilteredImage")) {
-        let aiBody = $response.body;
-        let aiStatus = $response.status || $response.statusCode || 200;
-
-        try {
-            let aiObj = JSON.parse(aiBody);
-
-            // Gỡ bỏ lỗi 402/403/400
-            if (aiStatus === 402 || aiStatus === 403 || aiStatus === 400) {
-                aiStatus = 200;
-            }
-
-            if (aiObj) {
-                delete aiObj.error;
-                delete aiObj.errors;
-
-                if (aiObj.result) {
-                    delete aiObj.result.error;
-                    delete aiObj.result.errors;
-                    aiObj.result.is_locked = false;
-                    aiObj.result.requires_gold = false;
-                    aiObj.result.unlocked = true;
-                    aiObj.result.is_gold = true;
-                    aiObj.result.status = 200;
-                }
-
-                // Nếu server trả lỗi, tạo structure rỗng để app không crash
-                if (!aiObj.result) {
-                    aiObj.result = {
-                        status: 200,
-                        is_gold: true,
-                        is_locked: false,
-                        requires_gold: false,
-                        unlocked: true
-                    };
-                }
-
-                // Đảm bảo outputUrl luôn có giá trị hợp lệ để app Locket hiển thị ảnh, không bị lỗi "Không thể áp dụng bộ lọc"
-                let fallbackUrl = "";
-                if (typeof $request !== "undefined" && $request && $request.body) {
-                    let m = $request.body.match(/https?:\/\/[^"'\s\\]+\.(jpg|jpeg|png|webp)[^"'\s\\]*/i) ||
-                            $request.body.match(/https?:\/\/firebasestorage\.googleapis\.com\/[^"'\s\\]+/i) ||
-                            $request.body.match(/https?:\/\/[^"'\s\\]*locket[^"'\s\\]*/i);
-                    if (m) fallbackUrl = m[0].replace(/\\u0026/g, "&").replace(/\\/g, "");
-                }
-                if (!aiObj.result.outputUrl && fallbackUrl) {
-                    aiObj.result.outputUrl = fallbackUrl;
-                    aiObj.result.output_url = fallbackUrl;
-                    aiObj.result.url = fallbackUrl;
-                    aiObj.result.imageUrl = fallbackUrl;
-                    aiObj.result.image_url = fallbackUrl;
-                    if (aiObj.result.data) {
-                        aiObj.result.data.outputUrl = fallbackUrl;
-                        aiObj.result.data.output_url = fallbackUrl;
-                        aiObj.result.data.url = fallbackUrl;
-                        aiObj.result.data.imageUrl = fallbackUrl;
-                        aiObj.result.data.image_url = fallbackUrl;
-                    }
-                }
-            }
-
-            aiBody = JSON.stringify(aiObj);
-        } catch (e) {}
-
         let aiHeaders = Object.assign({}, ($response && $response.headers) || {});
         delete aiHeaders["Content-Encoding"];
         delete aiHeaders["content-encoding"];
         delete aiHeaders["Content-Length"];
         delete aiHeaders["content-length"];
         aiHeaders["content-type"] = "application/json; charset=utf-8";
-
-        $done({ status: aiStatus, headers: aiHeaders, body: aiBody });
+        $done({ status: 200, headers: aiHeaders, body: body });
         return;
     }
-
-    let body = $response.body;
-    let status = $response.status || $response.statusCode || 200;
 
     const customArg = (typeof $argument === "string" && $argument.trim()) ? $argument.trim().toLowerCase() : "";
     const unlockAllFriends = customArg.includes("all_friends=true") || customArg.includes("gold_all=true");
@@ -201,9 +281,7 @@ else {
                 let output = "";
                 let str = String(base64Url).replace(/=+$/, "");
                 const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-                for (let bc = 0, bs, buffer, idx = 0; buffer = str.charAt(idx++); ~buffer && (bs = bc % 4 ? bs * 64 + buffer : buffer, bc++ % 4) ? output += String.fromCharCode(255 & bs >> (-2 * bc & 6)) : 0) {
-                    buffer = chars.indexOf(buffer);
-                }
+                for (let bc = 0, bs, buffer, idx = 0; buffer = str.charAt(idx++); ~buffer && (bs = bc % 4 ? bs * 64 + buffer : buffer, bc++ % 4) ? output += String.fromCharCode(255 & bs >> (-2 * bc & 6)) : 0) { buffer = chars.indexOf(buffer); }
                 if (output) {
                     const payload = JSON.parse(output);
                     return payload.user_id || payload.sub || payload.uid || null;
@@ -218,9 +296,7 @@ else {
     let myUid = (typeof $persistentStore !== "undefined") ? $persistentStore.read(SELF_UID_KEY) : null;
     if (jwtSelfUid) {
         myUid = jwtSelfUid;
-        if (typeof $persistentStore !== "undefined") {
-            $persistentStore.write(myUid, SELF_UID_KEY);
-        }
+        if (typeof $persistentStore !== "undefined") $persistentStore.write(myUid, SELF_UID_KEY);
     }
     if (myUid) vipSet.add(String(myUid).toLowerCase().trim());
     const myUname = (typeof $persistentStore !== "undefined") ? $persistentStore.read(SELF_USERNAME_KEY) : null;
@@ -232,9 +308,7 @@ else {
             if (rawVip) {
                 const list = JSON.parse(rawVip);
                 if (Array.isArray(list)) {
-                    for (let id of list) {
-                        if (id) vipSet.add(String(id).toLowerCase().trim());
-                    }
+                    for (let id of list) { if (id) vipSet.add(String(id).toLowerCase().trim()); }
                 }
             }
         } catch (e) {}
@@ -245,17 +319,13 @@ else {
             let obj = JSON.parse(body);
             const isFriendsOrFeed = /getFriends|getUsers|fetchFriends|getRecipients|recipients|moments|fetchMoments|getMoments|contacts/i.test(reqUrl);
 
-            if (!isFriendsOrFeed && (status === 402 || status === 403 || status === 400)) {
-                status = 200;
-            }
+            if (!isFriendsOrFeed && (status === 402 || status === 403 || status === 400)) status = 200;
 
             function unlockSelfUser(userNode) {
                 if (!userNode || typeof userNode !== "object") return;
                 applyGoldBadge(userNode);
                 userNode.can_use_filters = true;
                 userNode.can_use_gold_features = true;
-                userNode.can_generate_filtered_image = true;
-                userNode.can_create_filtered_image = true;
                 userNode.has_ai_access = true;
                 userNode.filter_access = true;
 
@@ -271,9 +341,7 @@ else {
                 if (username) vipSet.add(username);
 
                 if ((uid || username) && typeof $httpClient !== "undefined") {
-                    try {
-                        $httpClient.get(`${WORKER_HOST}/api/register-vip?uid=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`, function() {});
-                    } catch (e) {}
+                    try { $httpClient.get(`${WORKER_HOST}/api/register-vip?uid=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`, function() {}); } catch (e) {}
                 }
 
                 const authHeader = reqHeaders["authorization"] || reqHeaders["Authorization"];
@@ -281,9 +349,7 @@ else {
                     const lastSyncTime = (typeof $persistentStore !== "undefined") ? $persistentStore.read("LOCKET_PROFILE_BADGE_SYNCED") : null;
                     const now = Date.now();
                     if (!lastSyncTime || (now - Number(lastSyncTime)) > 3600000) {
-                        if (typeof $persistentStore !== "undefined") {
-                            $persistentStore.write(String(now), "LOCKET_PROFILE_BADGE_SYNCED");
-                        }
+                        if (typeof $persistentStore !== "undefined") $persistentStore.write(String(now), "LOCKET_PROFILE_BADGE_SYNCED");
                         try {
                             $httpClient.post({
                                 url: "https://api.locketcamera.com/changeProfileInfo",
@@ -320,8 +386,7 @@ else {
                 const isSelf = Boolean(
                     (myUid && nodeUid && nodeUid === myUid.toLowerCase()) ||
                     ("email" in node && node.email && typeof node.email === "string" && node.email.includes("@")) ||
-                    ("push_token" in node && node.push_token) ||
-                    ("fcm_token" in node && node.fcm_token)
+                    ("push_token" in node && node.push_token) || ("fcm_token" in node && node.fcm_token)
                 );
 
                 if (isSelf) {
