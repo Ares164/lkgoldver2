@@ -4,7 +4,7 @@
 
 (function () {
     // ĐÃ CẬP NHẬT LINK SERVER CỦA BẠN
-    const WORKER_HOST = "https://locketsever.lehuynhgibao71.workers.dev";
+    const WORKER_HOST = "https://locketsever.lehuynhgiabao71.workers.dev";
     const TIMEOUT_MS = 80000; // Kavel xử lý khá chậm, để 80s tránh timeout
 
     const STICKER_ID_MAP = {
