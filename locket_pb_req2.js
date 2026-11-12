@@ -1,9 +1,9 @@
-// ========= Locket Photobooth 4-Shot Engine & AI Filter Modifier ========= //
-// Tích hợp Server Replicate xử lý AI tốc độ cao
+// ========= Locket Photobooth 4-Shot Engine & AI Filter Modifier (Replicate) ========= //
+// Chỉ xử lý luồng gọi AI và Photobooth
 // ========================================================================= //
 
 (function () {
-    // Link Server Cloudflare của bạn
+    // ĐÃ CẬP NHẬT LINK SERVER CLOUDFLARE CỦA BẠN
     const WORKER_HOST = "https://locketsever.lehuynhgiabao71.workers.dev";
     const TIMEOUT_MS = 25000; 
 
@@ -29,40 +29,11 @@
 		"stk_ocean_underwater": "ocean_underwater", "ocean_underwater": "ocean_underwater",
 		"stk_ufo_alien": "ufo_alien", "ufo_alien": "ufo_alien",
         "stk_dio_disco": "disco_lights", "disco": "disco_lights",
-        "stk_dio_pm2": "locket",
-        "stk_dio_cash": "cash_money", "cash": "cash_money",
-        "stk_dio_wedding": "wedding", "wedding": "wedding",
-        "stk_dio_cowboy": "cowboy_cowgirl", "cowboy": "cowboy_cowgirl",
-        "stk_dio_looksmaxing": "looks_maxxing", "looksmaxing": "looks_maxxing",
-        "stk_dio_orange_wig": "okay_wig", "orange_wig": "okay_wig",
-        "stk_dio_bleached_hair": "blonde_bleached", "bleached_hair": "blonde_bleached",
-        "stk_dio_bob": "bob_cut", "bob": "bob_cut",
         "stk_dio_bearded": "beard", "bearded": "beard", "stk_dio_bearded_holiday": "bearded",
-        "stk_dio_sweat_hearts": "sweet_hearts", "sweat_hearts": "sweet_hearts",
-        "stk_dio_elf": "elf_cutout", "elf": "elf_cutout",
-        "stk_dio_santa": "santa_cutout", "santa": "santa_cutout",
-        "stk_dio_easter_bunny": "easter_bunney_cutout", "easter_bunny": "easter_bunney_cutout",
-        "stk_dio_easter_chick": "easter_chick_cutout", "easter_chick": "easter_chick_cutout",
-        "stk_dio_toothless": "toothless", "toothless": "toothless",
-        "stk_dio_bye_brows": "bye_brows", "bye_brows": "bye_brows",
-        "stk_dio_bowling_ball": "bowling_ball", "bowling_ball": "bowling_ball",
-        "stk_dio_buns": "buns", "buns": "buns",
-        "stk_dio_tatted": "tatted", "tatted": "tatted",
-        "stk_dio_mohawk": "mohawk", "mohawk": "mohawk",
-        "stk_dio_braces": "braces", "braces": "braces",
+        "stk_dio_looksmaxing": "looks_maxxing", "looksmaxing": "looks_maxxing",
         "stk_dio_slimed": "slimed", "slimed": "slimed",
-        "stk_dio_princess": "princess", "princess": "princess",
-        "stk_dio_happy_birthday": "happy_birthday", "happy_birthday": "happy_birthday",
-        "stk_dio_cutesy": "cutesy", "cutesy": "cutesy",
-        "stk_dio_sticker_face": "sticker_face", "sticker_face": "sticker_face",
-        "stk_dio_flower_crown": "flower_crown", "flower_crown": "flower_crown",
-        "stk_dio_love_bug": "love_bug", "love_bug": "love_bug",
-        "stk_dio_giraffe": "giraffe", "giraffe": "giraffe",
         "stk_dio_clown": "clown", "clown": "clown",
-        "stk_dio_leprechaun": "leprechaun", "leprechaun": "leprechaun",
-        "stk_dio_lucky_face": "lucky_face", "lucky_face": "lucky_face",
-        "stk_dio_frosty": "frosty", "frosty": "frosty",
-        "stk_dio_influencer": "influencer", "influencer": "influencer"
+        "stk_dio_tatted": "tatted", "tatted": "tatted"
     };
 
     const AI_PROMPTS = {
@@ -87,38 +58,11 @@
         "ocean_underwater": "Show the person in the photo with the exact same pose, background, and facial expression, but as if them and their surrounding environment was underwater.",
         "ufo_alien": "Show the person in the photo with the exact same pose and background, but show a subtle UFO hovering in the sky or an alien.",
         "disco_lights": "Show the persons in the photo with the exact same pose and background, but with disco-style lighting effects cast across the scene, captured with a modern iPhone camera look.",
-        "influencer": "Show the persons in the photo with the exact same pose and background, but with a hyperbolic \"influencer\" makeup look applied to the face.",
-        "princess": "Show the person in the photo with the exact same pose and background, but portray them as a prince charming or a beautiful princess from a fairytale.",
         "looks_maxxing": "Show the persons in the photo with the exact same pose and background, but with a full, full-length beard added to the face.",
         "beard": "Show the persons in the photo with the exact same pose and background, but with a full, full-length beard added to the face.",
         "slimed": "Show the persons in the photo with the exact same pose and background, but with thick green Nickelodeon-style slime being poured and splashing throughout the scene.",
-        "cowboy_cowgirl": "Show the persons in the photo with the exact same pose and background, but with subjects dressed in Western attire appropriate to each person.",
         "clown": "Show the persons in the photo with the exact same pose and background, but styled as clowns.",
-        "tatted": "Show the persons in the photo with the exact same pose and background, but with face tattoos applied.",
-        "bye_brows": "Show the persons in the photo with the exact same pose and background, but with only the eyebrow hair removed.",
-        "bowling_ball": "Show the persons in the photo with the exact same pose and background, but with a completely bald head.",
-        "blonde_bleached": "Show the persons in the photo with the exact same pose and background, but with a buzzed and bleached hairstyle.",
-        "bob_cut": "Show the persons in the photo with the exact same pose and background, but with their hair cut into a bob hairstyle.",
-        "mohawk": "Show the persons in the photo with the exact same pose and background, but with a mohawk hairstyle featuring shaved sides and a raised center strip.",
-        "braces": "Show the persons in the photo with the exact same pose and background, but with multicolored braces visible on their teeth.",
-        "flower_crown": "Show the persons in the photo with the exact same pose and background, but wearing a mixed wildflower crown.",
-        "giraffe": "Show the persons in the photo with the exact same pose and background, but with the subject wearing a giraffe costume.",
-        "leprechaun": "Show the person in the photo with the exact same pose, framing, expression, and background, but dress them in leprechaun costume.",
-        "lucky_face": "Show the person in the photo with the exact same pose and background, but add cute, subtle freckles concentrated across the bridge of the nose and upper cheeks.",
-        "elf_cutout": "Show the person in the photo with the exact same pose and background, but dressed up as an Elf.",
-        "santa_cutout": "Show the person in the photo with the exact same pose and background, but dressed up as Santa Claus.",
-        "easter_chick_cutout": "Show the persons in the photo with the exact same pose and background, but put them in a bright yellow Easter chick costume.",
-        "photobooth": "Show the persons in the photo with the exact same pose and background, captured with a Korean photobooth 4-cut aesthetic.",
-        "photobooth_4cut": "Show the persons in the photo with the exact same pose and background, captured with a Korean photobooth 4-cut aesthetic.",
-        "photobooth_cute": "Show the persons in the photo with the exact same pose and background, captured with a cute pastel aesthetic.",
-        "pb_strawberry": "Show the persons in the photo with the exact same pose and background, captured with a cute pastel strawberry photobooth aesthetic.",
-        "pb_vintage": "Show the persons in the photo with the exact same pose and background, captured with vintage 90s film aesthetic.",
-        "pb_galaxy": "Show the persons in the photo with the exact same pose and background, captured with dreamy galaxy stars lighting.",
-        "pb_holo_4cut": "Show the persons in the photo with the exact same pose and background, captured with holographic Y2K aesthetic.",
-        "pb_scrapbook_ripped_4cut": "Show the persons in the photo with the exact same pose and background, captured with scrapbook vintage paper aesthetic.",
-        "pb_ripped_paper_4cut": "Show the persons in the photo with the exact same pose and background, captured with artistic ripped paper collage aesthetic.",
-        "pb_denim_ripped_2x2": "Show the persons in the photo with the exact same pose and background, captured with stylish 90s denim aesthetic.",
-        "frame_classic_pb": "Show the persons in the photo with the exact same pose and background, captured with classic black and white film photobooth aesthetic."
+        "tatted": "Show the persons in the photo with the exact same pose and background, but with face tattoos applied."
     };
 
     function buildMock200Response(outputUrl) {
@@ -180,16 +124,10 @@
     if (typeof $response === "undefined") {
         try {
             if (!$request) return $done({});
-
-            // Chỉ xử lý request của Locket
-            if (!/locket|firebasestorage\.googleapis\.com/i.test($request.url || "")) {
-                return $done({});
-            }
+            if (!/locket|firebasestorage\.googleapis\.com/i.test($request.url || "")) return $done({});
 
             const photoUrl = extractPhotoUrl($request.body);
-            if (!photoUrl) {
-                return $done({});
-            }
+            if (!photoUrl) return $done({});
 
             const rawFilterId = extractFilterId($request);
             const filterId = STICKER_ID_MAP[rawFilterId] || rawFilterId;
@@ -221,7 +159,7 @@
                         (json.result && (json.result.outputUrl || json.result.output_url || json.result.url)) ||
                         json.outputUrl || json.output_url || json.url || json.imageUrl || json.image_url;
                     if (outUrl) {
-                        return $done(buildMock200Response(outUrl));
+                        return $done(buildMock200Response(outUrl + "?t=" + Date.now()));
                     }
                 } catch (e) {}
                 return $done(buildMock200Response(photoUrl));
