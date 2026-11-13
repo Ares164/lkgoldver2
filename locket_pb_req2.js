@@ -206,7 +206,13 @@
     "frame_classic_pb": "Show the persons in the photo with the exact same pose and background, captured with classic black and white film photobooth aesthetic, dramatic soft lighting, 8k resolution, modern iPhone camera look."
 };
 
-function storeRead(key) {
+/***********************************************
+> Locket Photobooth & Filter Local Script (Fixed)
+> Tác giả: GB
+***********************************************/
+
+(function() {
+    function storeRead(key) {
         try {
             if (typeof $persistentStore !== "undefined") return $persistentStore.read(key) || "";
             if (typeof $prefs !== "undefined") return $prefs.valueForKey(key) || "";
@@ -221,25 +227,9 @@ function storeRead(key) {
         } catch (e) {}
     }
 
-    function isPhotoboothFilter(fid) {
-        if (!fid) return false;
-        const lower = String(fid).toLowerCase();
-        // Không nhận khung đơn (pb_single_ hoặc khung_)
-        if (lower.startsWith("pb_single_") || lower.startsWith("khung_")) return false;
-        // 10 bộ lọc Photobooth 4 ô chính thức
-        return /photobooth_4cut|photobooth_cute|pb_holo_4cut|pb_scrapbook_ripped_4cut|pb_ripped_paper_4cut|pb_denim_ripped_2x2|frame_classic_pb|frame_berry_days|frame_happy_snap|frame_sky_diary|pb_strawberry|pb_vintage|pb_galaxy|photoboot|4cut/i.test(lower);
-    }
-
-    function isOverlayFrameFilter(fid) {
-        if (!fid) return false;
-        if (isPhotoboothFilter(fid)) return false; // Không trùng với Photobooth 4 ô
-        const lower = String(fid).toLowerCase();
-        return /^khung_|^frame_|pb_single_|cmt_locket|custom_frame|sticker_b_nh_lu_n/i.test(lower);
-    }
-
     function buildMock200Response(outputUrl) {
         return {
-            response: { // <--- ĐÃ BỔ SUNG KHÓA RESPONSE ĐỂ SHADOWROCKET HIỂU VÀ MOCK KẾT QUẢ NGAY LẬP TỨC
+            response: { // Bắt buộc phải có khóa response để Shadowrocket hiểu và chặn trả về ngay lập tức
                 status: 200,
                 headers: {
                     "Content-Type": "application/json; charset=utf-8",
@@ -266,41 +256,8 @@ function storeRead(key) {
         };
     }
 
-    function setAllUrls(resObj, newUrl) {
-        if (!resObj || typeof resObj !== "object") return;
-        const fields = ["outputUrl", "output_url", "url", "imageUrl", "image_url"];
-        const targets = [
-            resObj,
-            resObj.result,
-            resObj.result && resObj.result.data,
-            resObj.data
-        ];
-        for (let t = 0; t < targets.length; t++) {
-            const obj = targets[t];
-            if (obj && typeof obj === "object") {
-                for (let f = 0; f < fields.length; f++) {
-                    if (obj[fields[f]] !== undefined) obj[fields[f]] = newUrl;
-                }
-            }
-        }
-        if (!resObj.result) resObj.result = {};
-        resObj.result.outputUrl = newUrl;
-        resObj.result.output_url = newUrl;
-        resObj.result.url = newUrl;
-        resObj.result.imageUrl = newUrl;
-        resObj.result.image_url = newUrl;
-        resObj.result.status = 200;
-        if (resObj.result.data) {
-            resObj.result.data.outputUrl = newUrl;
-            resObj.result.data.output_url = newUrl;
-            resObj.result.data.url = newUrl;
-            resObj.result.data.imageUrl = newUrl;
-            resObj.result.data.image_url = newUrl;
-        }
-    }
-
     // =========================================================================
-    // 1. CHIỀU REQUEST: XỬ LÝ GENERATE FILTERED IMAGE (MOCK 200 OK NGAY TẠI REQUEST)
+    // CHIỀU REQUEST: BẮT VÀ MOCK 200 OK NGAY LẬP TỨC
     // =========================================================================
     if (typeof $response === "undefined") {
         try {
@@ -315,7 +272,7 @@ function storeRead(key) {
                 }
             }
 
-            // Trích xuất photoUrl từ body
+            // Trích xuất photoUrl từ body request
             let photoUrl = reqBody.imageUrl || reqBody.image_url || reqBody.inputUrl || reqBody.input_url || reqBody.url || reqBody.downloadUrl || reqBody.download_url || "";
             if (!photoUrl && reqBody.data && typeof reqBody.data === "object") {
                 photoUrl = reqBody.data.imageUrl || reqBody.data.image_url || reqBody.data.url || reqBody.data.inputUrl || "";
@@ -327,15 +284,12 @@ function storeRead(key) {
                 if (m) photoUrl = m[0].replace(/\\u0026/g, "&").replace(/\\/g, "");
             }
 
-            // Xử lý Photobooth & Khung & Filter AI:
-            // Mock phản hồi HTTP 200 OK ngay tại request, trả về trực tiếp photoUrl của người dùng
-            // Điều này giải quyết triệt để lỗi "Không thể áp dụng bộ lọc", Locket sẽ nhận diện ảnh hợp lệ 100%
-            // và áp dụng lớp viền Photobooth/Sticker trực tiếp trên máy người dùng mà không cần phụ thuộc server
+            // Nếu tìm thấy ảnh, trả về response giả lập thành công 200 OK ngay lập tức
             if (photoUrl) {
                 return $done(buildMock200Response(photoUrl));
             }
 
-            // Nếu không tìm thấy photoUrl trong body, xóa sạch cache header để request không bị 304
+            // Dự phòng nếu không bắt được link, xóa cache header để tránh 304
             let headers = Object.assign({}, ($request && $request.headers) || {});
             for (let k of Object.keys(headers)) {
                 if (['if-none-match', 'if-modified-since', 'x-revenuecat-etag'].includes(k.toLowerCase())) {
@@ -349,7 +303,7 @@ function storeRead(key) {
     }
 
     // =========================================================================
-    // 2. CHIỀU RESPONSE: DỰ PHÒNG XÓA LỖI & ĐẢM BẢO RESPONSE LUÔN THÀNH CÔNG
+    // CHIỀU RESPONSE: XỬ LÝ DỰ PHÒNG AN TOÀN
     // =========================================================================
     try {
         if (typeof $response !== "undefined" && $response.body) {
@@ -377,17 +331,6 @@ function storeRead(key) {
                     is_locked: false,
                     requires_gold: false
                 };
-            }
-
-            // Đảm bảo outputUrl không bao giờ rỗng
-            if (!resObj.result.outputUrl && typeof $request !== "undefined" && $request && $request.body) {
-                let m = $request.body.match(/https?:\/\/[^"'\s\\]+\.(jpg|jpeg|png|webp)[^"'\s\\]*/i) ||
-                        $request.body.match(/https?:\/\/firebasestorage\.googleapis\.com\/[^"'\s\\]+/i) ||
-                        $request.body.match(/https?:\/\/[^"'\s\\]*locket[^"'\s\\]*/i);
-                if (m) {
-                    let fallback = m[0].replace(/\\u0026/g, "&").replace(/\\/g, "");
-                    setAllUrls(resObj, fallback);
-                }
             }
 
             let respHeaders = Object.assign({}, ($response && $response.headers) || {});
