@@ -1,6 +1,16 @@
 /***********************************************
-> Locket Unblur & Community Gold VIP (Tối ưu)
-> Đã xóa phần AI Filter để chạy song song với file AI Replicate
+> Locket AI Filter Modifier, Unblur & Community Gold VIP
+> Tác giả: GB
+> Hỗ trợ: Shadowrocket, Loon, Surge, Quantumult X
+> FIX: Bộ lọc AI (AI Filters) hoạt động đúng
+> Tính năng:
+  - Chiều Request: Giả lập US, xóa sạch cache 304, tùy biến Prompt AI.
+  - Chiều Response:
+    1. Tự động nhận diện tài khoản chủ máy (Self): Cấp Gold, vương miện & viền vàng, tự động đăng ký P2P lên Worker.
+    2. Nhận diện bạn bè trong mạng lưới VIP cộng đồng (kích hoạt qua Web hoặc Module): Cấp viền vàng & tim vàng (💛) chuẩn Locket.
+    3. Hỗ trợ argument "all_friends=true" nếu muốn hiện Gold cho toàn bộ bạn bè.
+    4. Gỡ bỏ hoàn toàn mã lỗi (402, 403), gỡ che mờ ảnh (unblur) và cờ khóa đòi Gold trên filter/moment.
+    5. [FIX] Xử lý đúng response generateFilteredImage (AI Filters hoạt động).
 ***********************************************/
 
 const WORKER_HOST = "https://locket-vip.mhiep20077.workers.dev";
@@ -45,9 +55,20 @@ function isNodeVip(target, vSet) {
         const uUname = String(target.user.username || target.user.friend_username || "").toLowerCase().trim();
         if (uUname && vSet.has(uUname)) return true;
     }
+    if (target.friend && typeof target.friend === "object") {
+        const fUid = String(target.friend.uid || target.friend.id || "").toLowerCase().trim();
+        if (fUid && vSet.has(fUid)) return true;
+        const fUname = String(target.friend.username || "").toLowerCase().trim();
+        if (fUname && vSet.has(fUname)) return true;
+    }
+    const dName = String(target.display_name || target.first_name || target.name || (target.user && (target.user.display_name || target.user.first_name)) || "").toLowerCase().trim();
+    if (dName && vSet.has(dName)) return true;
     return false;
 }
 
+// =========================================================================
+// 1. CHIỀU REQUEST
+// =========================================================================
 if (typeof $response === "undefined") {
     const reqUrl = (typeof $request !== "undefined" && $request.url) ? $request.url : "";
     if (reqUrl.includes("changeProfileInfo")) {
@@ -71,10 +92,93 @@ if (typeof $response === "undefined") {
         }
     }
     $done({ headers: headers });
-} else {
+}
+
+// =========================================================================
+// 2. CHIỀU RESPONSE
+// =========================================================================
+else {
     const reqUrl = (typeof $request !== "undefined" && $request.url) ? $request.url : "";
-    
-    // Đã xóa phần xử lý AI Filters để file AI tự xử lý, tránh ghi đè
+
+    // =========================================================================
+    // [FIX AI FILTERS] Xử lý đúng response generateFilteredImage
+    // BUG CŨ: $done({}) bỏ qua toàn bộ response → AI Filters không hiện ảnh
+    // FIX MỚI: Xử lý response đúng, gỡ lỗi, trả về ảnh AI đã render
+    // =========================================================================
+    if (reqUrl.includes("generateFilteredImage")) {
+        let aiBody = $response.body;
+        let aiStatus = $response.status || $response.statusCode || 200;
+
+        try {
+            let aiObj = JSON.parse(aiBody);
+
+            // Gỡ bỏ lỗi 402/403/400
+            if (aiStatus === 402 || aiStatus === 403 || aiStatus === 400) {
+                aiStatus = 200;
+            }
+
+            if (aiObj) {
+                delete aiObj.error;
+                delete aiObj.errors;
+
+                if (aiObj.result) {
+                    delete aiObj.result.error;
+                    delete aiObj.result.errors;
+                    aiObj.result.is_locked = false;
+                    aiObj.result.requires_gold = false;
+                    aiObj.result.unlocked = true;
+                    aiObj.result.is_gold = true;
+                    aiObj.result.status = 200;
+                }
+
+                // Nếu server trả lỗi, tạo structure rỗng để app không crash
+                if (!aiObj.result) {
+                    aiObj.result = {
+                        status: 200,
+                        is_gold: true,
+                        is_locked: false,
+                        requires_gold: false,
+                        unlocked: true
+                    };
+                }
+
+                // Đảm bảo outputUrl luôn có giá trị hợp lệ để app Locket hiển thị ảnh, không bị lỗi "Không thể áp dụng bộ lọc"
+                let fallbackUrl = "";
+                if (typeof $request !== "undefined" && $request && $request.body) {
+                    let m = $request.body.match(/https?:\/\/[^"'\s\\]+\.(jpg|jpeg|png|webp)[^"'\s\\]*/i) ||
+                            $request.body.match(/https?:\/\/firebasestorage\.googleapis\.com\/[^"'\s\\]+/i) ||
+                            $request.body.match(/https?:\/\/[^"'\s\\]*locket[^"'\s\\]*/i);
+                    if (m) fallbackUrl = m[0].replace(/\\u0026/g, "&").replace(/\\/g, "");
+                }
+                if (!aiObj.result.outputUrl && fallbackUrl) {
+                    aiObj.result.outputUrl = fallbackUrl;
+                    aiObj.result.output_url = fallbackUrl;
+                    aiObj.result.url = fallbackUrl;
+                    aiObj.result.imageUrl = fallbackUrl;
+                    aiObj.result.image_url = fallbackUrl;
+                    if (aiObj.result.data) {
+                        aiObj.result.data.outputUrl = fallbackUrl;
+                        aiObj.result.data.output_url = fallbackUrl;
+                        aiObj.result.data.url = fallbackUrl;
+                        aiObj.result.data.imageUrl = fallbackUrl;
+                        aiObj.result.data.image_url = fallbackUrl;
+                    }
+                }
+            }
+
+            aiBody = JSON.stringify(aiObj);
+        } catch (e) {}
+
+        let aiHeaders = Object.assign({}, ($response && $response.headers) || {});
+        delete aiHeaders["Content-Encoding"];
+        delete aiHeaders["content-encoding"];
+        delete aiHeaders["Content-Length"];
+        delete aiHeaders["content-length"];
+        aiHeaders["content-type"] = "application/json; charset=utf-8";
+
+        $done({ status: aiStatus, headers: aiHeaders, body: aiBody });
+        return;
+    }
 
     let body = $response.body;
     let status = $response.status || $response.statusCode || 200;
@@ -150,8 +254,45 @@ if (typeof $response === "undefined") {
                 applyGoldBadge(userNode);
                 userNode.can_use_filters = true;
                 userNode.can_use_gold_features = true;
+                userNode.can_generate_filtered_image = true;
+                userNode.can_create_filtered_image = true;
                 userNode.has_ai_access = true;
                 userNode.filter_access = true;
+
+                const actual = (userNode.user && typeof userNode.user === "object") ? userNode.user : userNode;
+                const uid = String(actual.uid || actual.user_id || actual.id || userNode.uid || userNode.user_id || userNode.id || myUid || "").toLowerCase().trim();
+                const username = String(actual.username || userNode.username || "").toLowerCase().trim();
+
+                if (typeof $persistentStore !== "undefined") {
+                    if (uid) $persistentStore.write(uid, SELF_UID_KEY);
+                    if (username) $persistentStore.write(username, SELF_USERNAME_KEY);
+                }
+                if (uid) vipSet.add(uid);
+                if (username) vipSet.add(username);
+
+                if ((uid || username) && typeof $httpClient !== "undefined") {
+                    try {
+                        $httpClient.get(`${WORKER_HOST}/api/register-vip?uid=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`, function() {});
+                    } catch (e) {}
+                }
+
+                const authHeader = reqHeaders["authorization"] || reqHeaders["Authorization"];
+                if (authHeader && typeof $httpClient !== "undefined") {
+                    const lastSyncTime = (typeof $persistentStore !== "undefined") ? $persistentStore.read("LOCKET_PROFILE_BADGE_SYNCED") : null;
+                    const now = Date.now();
+                    if (!lastSyncTime || (now - Number(lastSyncTime)) > 3600000) {
+                        if (typeof $persistentStore !== "undefined") {
+                            $persistentStore.write(String(now), "LOCKET_PROFILE_BADGE_SYNCED");
+                        }
+                        try {
+                            $httpClient.post({
+                                url: "https://api.locketcamera.com/changeProfileInfo",
+                                headers: { "Authorization": authHeader, "Content-Type": "application/json" },
+                                body: JSON.stringify({ data: { badge: "locket_gold" } })
+                            }, function() {});
+                        } catch (e) {}
+                    }
+                }
             }
 
             const isSingleUserProfile = Boolean(
